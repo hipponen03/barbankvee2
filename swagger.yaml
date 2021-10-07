@@ -1,0 +1,86 @@
+openapi: 3.0.2
+info:
+  title: barbankvee2
+  version: 1.0.0
+paths:
+  /users:
+    summary: Path used to manage the list of users.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `user` entities.  This path contains a
+      `GET` and `POST` operation to perform the list and create tasks, respectively.
+    post:
+      requestBody:
+        description: A new `user` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      tags:
+        - users
+      responses:
+        '201':
+          description: Successful response.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Parameter missing:
+                  value:
+                    error: 'user validation failed: (?<parameterName>[^:]+): Path `(?<parameterNameAgain>[^`]+)` is required.(, ([^:]+): Path `([^`]+)` is required.){0,2}'
+          description: Parameter missing
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Username already exists:
+                  value:
+                    error: Username already exists
+          description: Username already exists
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Parameter(s) value too short/long:
+                  value:
+                    error: Path `(?<parameterName>.+)` \(`(?<sampleValue>.+)`\) is (longer|shorter) than the (maximum|minimum) allowed length \((?<requiredLength>\d+)\)
+          description: Parameter(s) value too short/long
+      operationId: createuser
+      summary: Create a user
+      description: Creates a new instance of a `user`.
+components:
+  schemas:
+    user:
+      title: Root Type for user
+      description: ''
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+      example:
+        username: miki
+        password: qwertyqwerty
+        name: Miki Hiir
+    error:
+      title: Root Type for error
+      description: ''
+      type: object
+      properties:
+        error:
+          type: string
+      example:
+        error: some text
+tags:
+  -
+    name: users
+    description: ''
