@@ -54,6 +54,86 @@ paths:
       operationId: createuser
       summary: Create a user
       description: Creates a new instance of a `user`.
+  /sessions:
+    summary: Path used to manage the list of sessions.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `session` entities.  This path
+      contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    post:
+      requestBody:
+        description: A new `session` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+            examples:
+              POST /sessions request:
+                value:
+                  username: man
+                  password: qwertqwetqwert
+        required: true
+      tags:
+        - sessions
+      responses:
+        '201':
+          description: Successful response.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Required parameter missing:
+                  value:
+                    error: Required parameter missing
+          description: Required parameter missing
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Invalid credentials:
+                  value:
+                    error: Invalid credentials
+          description: Invalid credentials
+      operationId: createsession
+      summary: Create a session
+      description: Creates a new instance of a `session`.
+    delete:
+      tags:
+        - sessions
+      responses:
+        '204':
+          description: Session successfully deleted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Invalid authorization format:
+                  value:
+                    error: Invalid authorization format
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Missing authorization:
+                  value:
+                    error: Missing authorization
+                Invalid token:
+                  value:
+                    error: Invalid token
+          description: Problem with authorization
+      security:
+        -
+          Bearer: []
+      summary: Delete a `session`
+      description: Deletes `session` with an id specified in authorization header.
 components:
   schemas:
     user:
@@ -80,7 +160,23 @@ components:
           type: string
       example:
         error: some text
+    session:
+      title: Root Type for session
+      description: ''
+      type: object
+      properties:
+        token:
+          type: string
+      example:
+        token: 6160380bb79c71cb7891db08
+  securitySchemes:
+    Bearer:
+      scheme: bearer
+      type: http
 tags:
   -
     name: users
+    description: ''
+  -
+    name: sessions
     description: ''
