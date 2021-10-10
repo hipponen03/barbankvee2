@@ -29,7 +29,10 @@ paths:
               examples:
                 Parameter missing:
                   value:
-                    error: 'user validation failed: (?<parameterName>[^:]+): Path `(?<parameterNameAgain>[^`]+)` is required.(, ([^:]+): Path `([^`]+)` is required.){0,2}'
+                    error: >-
+                      user validation failed: (?<parameterName>[^:]+): Path
+                      `(?<parameterNameAgain>[^`]+)` is required.(, ([^:]+): Path
+                      `([^`]+)` is required.){0,2}
           description: Parameter missing
         '409':
           content:
@@ -49,7 +52,10 @@ paths:
               examples:
                 Parameter(s) value too short/long:
                   value:
-                    error: Path `(?<parameterName>.+)` \(`(?<sampleValue>.+)`\) is (longer|shorter) than the (maximum|minimum) allowed length \((?<requiredLength>\d+)\)
+                    error: >-
+                      Path `(?<parameterName>.+)` \(`(?<sampleValue>.+)`\) is
+                      (longer|shorter) than the (maximum|minimum) allowed length
+                      \((?<requiredLength>\d+)\)
           description: Parameter(s) value too short/long
       operationId: createuser
       summary: Create a user
@@ -134,6 +140,57 @@ paths:
           Bearer: []
       summary: Delete a `session`
       description: Deletes `session` with an id specified in authorization header.
+  /users/current:
+    get:
+      tags:
+        - users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+              examples:
+                GET /users/current response:
+                  value:
+                    accounts:
+                      -
+                        account_number: EE570564119
+                        balance: 10000
+                        currency: euro
+                        name: Main
+                        userId: 61670a7842bf443591d63442
+                    name: MikiHiir
+                    username: Miki
+          description: Successful request
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Invalid authorization format:
+                  value:
+                    error: Invalid authorization format
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Missing authorization:
+                  value:
+                    error: Missing authorization
+                Invalid token:
+                  value:
+                    error: Invalid token
+          description: Unauthorized
+      security:
+        -
+          Bearer: []
+      summary: Get current user data
+      description: Returns current 'user' data
 components:
   schemas:
     user:
