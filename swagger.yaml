@@ -191,6 +191,89 @@ paths:
           Bearer: []
       summary: Get current user data
       description: Returns current 'user' data
+  /transactions:
+    summary: Path used to manage the list of transactions.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `transaction` entities.  This path
+      contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    post:
+      requestBody:
+        description: A new `transaction` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/transaction'
+        required: true
+      tags:
+        - transactions
+      responses:
+        '201':
+          description: Successful response.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Invalid amount:
+                  value:
+                    error: Invalid amount
+                Invalid authorization format:
+                  value:
+                    error: Invalid authorization format
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Missing authorization:
+                  value:
+                    error: Missing authorization
+                Invalid token:
+                  value:
+                    error: Invalid token
+          description: Missing authorization
+        '402':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Insufficient funds:
+                  value:
+                    error: Insufficient funds
+          description: Insufficient funds
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Account from belongs to another user:
+                  value:
+                    error: Account from belongs to another user
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              examples:
+                Invalid or nonexistent account:
+                  value:
+                    error: Invalid or nonexistent account
+                Destination bank not found:
+                  value:
+                    error: Destination bank not found
+          description: Not found
+      security:
+        -
+          Bearer: []
+      operationId: createtransaction
+      summary: Create a transaction
+      description: Creates a new instance of a `transaction`.
 components:
   schemas:
     user:
@@ -226,6 +309,28 @@ components:
           type: string
       example:
         token: 6160380bb79c71cb7891db08
+    transaction:
+      title: Root Type for transaction
+      description: ''
+      type: object
+      properties:
+        accountFrom:
+          type: string
+        accountTo:
+          type: string
+        amount:
+          format: int32
+          type: integer
+        currency:
+          type: string
+        explanation:
+          type: string
+      example:
+        accountFrom: EE570564119
+        accountTo: EE187012379
+        amount: 50
+        currency: EUR
+        explanation: test
   securitySchemes:
     Bearer:
       scheme: bearer
@@ -236,4 +341,7 @@ tags:
     description: ''
   -
     name: sessions
+    description: ''
+  -
+    name: transactions
     description: ''

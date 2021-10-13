@@ -4,6 +4,7 @@ const app = express()
 const swaggerUi = require('swagger-ui-express');
 const yaml = require('js-yaml');
 const fs   = require('fs');
+const {processTransactions} = require("./middlewares");
 
 // Get document, or throw exception on error
 try {
@@ -22,6 +23,10 @@ require("dotenv").config()
 // Register routes
 app.use('/users', require('./routes/users'))
 app.use('/sessions', require('./routes/sessions'))
+app.use('/transactions', require('./routes/transactions'))
+app.post('/transactions/b2b', function (req, res) {
+    return res.send({"receiverName":"Jaan Tamm"})
+})
 
 // Open connection to MongoDB
 mongoose.connect(process.env.MONGODB_URL, function (err) {
@@ -31,6 +36,8 @@ mongoose.connect(process.env.MONGODB_URL, function (err) {
     console.log("Connected to Mongo")
 
 })
+
+processTransactions();
 
 // Listen for connections
 app.listen(process.env.PORT, () => {

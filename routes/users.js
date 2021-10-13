@@ -43,7 +43,7 @@ module.exports = router.post('/', async (req, res) => {
         }
 
         // 400 Parameter(s) missing
-        if (/user validation failed:/.test(e.message)) {
+        if (/User validation failed:/.test(e.message)) {
             return res.status(400).send({error: e.message})
         }
 
@@ -60,6 +60,7 @@ module.exports = router.post('/', async (req, res) => {
 module.exports = router.get('/current', verifyToken, async (req, res) => {
     try {
         const user = await User.findOne({_id: req.userId});
+
         // 200 Success
         res.status(200).send({
             name: user.name,
@@ -68,6 +69,8 @@ module.exports = router.get('/current', verifyToken, async (req, res) => {
         })
     } catch (e) {
         if(req.params._id !== req.userId) {
+
+            // 403 Forbidden
             res.status(403).send({error: "Forbidden"});
         }
     }
