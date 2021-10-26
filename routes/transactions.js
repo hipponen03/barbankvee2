@@ -7,6 +7,8 @@ const {verifyToken, refreshBanksFromCentralBank} = require("../middlewares");
 const {JWK, JWS} = require('node-jose')
 const {join} = require('path')
 const {verifySignature, getPublicKey} = require("../crypto")
+const base64url = require('base64url');
+const Buffer = require('buffer/').Buffer;
 
 // Handle POST /transactions
 module.exports = router.post('/', verifyToken, async (req, res) => {
@@ -77,7 +79,7 @@ module.exports = router.post('/', verifyToken, async (req, res) => {
         }).save();
 
         await debitAccount(accountFrom, req.body.amount);
-        
+
         // 201 - Created
         return res.status(201).end();
     } catch (e) {
@@ -99,7 +101,7 @@ async function debitAccount(account, amount) {
 }
 
 // Plonks money
-async function creditAccount(account, amount){
+async function creditAccount(account, amount) {
     account.balance += amount
     await account.save();
 }
@@ -113,7 +115,7 @@ router.get('/jwks', async function (req, res) {
 
     // Return our keystore (only the public key derived from the imported private key) in JWKS (JSON Web Key Set) format
     console.log('/jwks: Returning keystore without private key')
-    
+
     return res.send(keystore.toJSON())
 })
 
@@ -123,7 +125,7 @@ async function convertCurrency(payload, accountTo) {
         const rate = await getRates(payload.currency, accountTo.currency)
         amount = parseInt((parseInt(amount) * parseFloat(rate)).toFixed(0))
     }
-    
+
     return amount;
 }
 
@@ -133,26 +135,35 @@ router.post('/b2b', async function (req, res) {
         const payload = JSON.parse(base64url.decode(components[1]))
         const accountTo = await Account.findOne({number: payload.accountTo})
     } catch (e) {
-        
-        // 401 - Unauthorized
-        return res.status(401).send({error: 'Unauthorized'})
+
+        // 500 - Internal server error
+        return res.status(500).send({error: e.message})
     }
 
     // Get source bank prefix
+    ["accountFrom", "accountTo", "amount", "currency", "explanation", "senderName"].forEach(function (parameter) {
+        if (!payload[parameter]) {
+            return res.status(400).send({error: 'Missing parameter ' + parameter + ' in JWT'})
+        }
+        if (typeof payload[parameter] !== 'string') {
+            return res.status(400).send({error: parameter + ' is of type ' + typeof payload[parameter] + ' but expected it to be type string in JWT'})
+        }
+    })
+
     const accountFromBankPrefix = payload.accountFrom.substring(0, 3)
 
     // Find source bank (document)
     const accountFromBank = await Bank.findOne({bankPrefix: accountFromBankPrefix})
 
     if (!accountFromBank) {
-        
+
         // Refresh the local list of banks with the list of banks from the central bank - kinda long but eh
-        const result = await refreshBanksFromCentralBank(); 
+        const result = await refreshBanksFromCentralBank();
         if (typeof result.error !== 'undefined') {
-            
-            // 404 - Not found
-            return res.status(404).send({error: 'Source bank not found'}) // 
-        }                                             
+
+            // 500
+            return res.status(500).send({error: "refreshBanksFromCentralBank: " + result.error}) //
+        }
     }
 
     // Validate signature
@@ -160,7 +171,7 @@ router.post('/b2b', async function (req, res) {
         const publicKey = await getPublicKey(accountFromBank.jwksUrl)
         await verifySignature(req.body.jwt, publicKey);
     } catch (e) {
-        
+
         // 400 - Bad request
         return res.status(400).send({error: 'Signature verification failed: ' + e.message})
     }

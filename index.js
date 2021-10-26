@@ -15,32 +15,32 @@ try {
 }
 
 // Parse request body
-app.use(express.json());
+try {
+    app.use(express.json());
 
 // Loads .env file contents into process.env
-require("dotenv").config()
+    require("dotenv").config()
 
 // Register routes
-app.use('/users', require('./routes/users'))
-app.use('/sessions', require('./routes/sessions'))
-app.use('/transactions', require('./routes/transactions'))
-app.post('/transactions/b2b', function (req, res) {
-    return res.send({"receiverName":"Jaan Tamm"})
-})
+    app.use('/users', require('./routes/users'))
+    app.use('/sessions', require('./routes/sessions'))
+    app.use('/transactions', require('./routes/transactions'))
 
 // Open connection to MongoDB
-mongoose.connect(process.env.MONGODB_URL, function (err) {
-    if (err)
-        console.log(err);
+    mongoose.connect(process.env.MONGODB_URL, function (err) {
+        if (err)
+            console.log(err);
 
-    console.log("Connected to Mongo")
+        console.log("Connected to Mongo")
 
-})
+    })
 
-processTransactions();
+    processTransactions();
 
 // Listen for connections
-app.listen(process.env.PORT, () => {
-    console.log(`App listening at http://localhost:${process.env.PORT}`)
-})
-
+    app.listen(process.env.PORT, () => {
+        console.log(`App listening at http://localhost:${process.env.PORT}`)
+    })
+} catch (e) {
+    console.log(e)
+}

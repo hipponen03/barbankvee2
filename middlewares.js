@@ -71,27 +71,12 @@ exports.refreshBanksFromCentralBank = async () => {
         // Return true
         return true
     } catch (e) {
-
         // Return exception message on error
-        return {error: e.message};
+        return {error: typeof e.response.data === 'undefined' ? JSON.stringify(e):JSON.stringify(e.response.data)};
     }
 }
 
-async function setStatus(transaction, status, details) {
-    transaction.status = status
-    transaction.statusDetails = details
-    await transaction.save()
-}
-
-function isExpired(transaction) {
-    const expireDate = transaction.createdAt.setDate(transaction.createdAt.getDate() + 3)
-    return new Date > expireDate;
-}
-
 exports.processTransactions = async () => {
-    // Init jose keystore
-    const keystore = jose.JWK.createKeyStore();
-    await keystore.add(input, form)
 
     // Get pending transactions
     let pendingTransactions = await Transaction.find({status: 'Pending'})
@@ -110,11 +95,11 @@ exports.processTransactions = async () => {
         await setStatus(transaction, 'In Progress')
 
         // Check if bank to was found and if not, refresh bank list and then attempt again and if still not found, set transaction status to failed and take the next transaction
-        let result = ;
-        if(!result || typeof result.error !== 'undefined'){
-            statusDetails = ''
+        let result = exports.refreshBanksFromCentralBank();
+        if (!result || typeof result.error !== 'undefined') {
+            return await setStatus(transaction, 'Failed', 'Central bank refresh failed: ' + result.error)
         }
-        
+
         // Get bank prefix
         const bankToPrefix = (transaction.accountTo).substr(0, 3);
 
@@ -142,36 +127,32 @@ exports.processTransactions = async () => {
             }
         }
 
-        // Create jwt string
-        // Sign payload
-        const key = keystore.all({use: 'sig'})[0]
-        const token = await JWS.createSign({compact: true, jwk: key, fields: {typ: 'jwt'}}, key).update(JSON.stringify({
-            accountFrom: transaction.accountFrom,
-            accountTo: transaction.accountTo,
-            amount: transaction.amount,
-            currency: transaction.currency,
-            explanation: transaction.explanation,
-            senderName: await new User.findOne({_id: transaction.accountFrom.userId})
-        })).final()
-
         // Send request to destination bank
-        
-        const requestDestinationBank = Bank.findOne()
-        
-        
-        
+        try {
+            const response = await sendRequestToBank(bankTo, await createSignedTransaction({
+                accountFrom: transaction.accountFrom,
+                accountTo: transaction.accountTo,
+                amount: transaction.amount,
+                currency: transaction.currency,
+                explanation: transaction.explanation,
+                senderName: transaction.senderName
+            }));
 
-        // Check for any errors with the request to foreign bank and log errors to statusDetails and take the next transaction
+            // Check for any errors with the request to foreign bank and log errors to statusDetails and take the next transaction
+            if (typeof response.error !== 'undefined') {
+                return await setStatus(transaction, 'Failed', response.error)
+            }
 
+            // Record receiverName from response to transaction object
+            transaction.receiverName = response.receiverName
 
-        // Record receiverName from response to transaction object
+            // Update transaction status to completed
+            await setStatus(transaction, 'Completed', 'finished')
+        } catch (e) {
+            console.log(e)
 
-
-        // Update transaction status to completed
-        await setStatus(transaction, 'Completed', 'finished')
-        
-        // Write changes to the transaction to DB
-        transaction.save()
+            return await setStatus(transaction, 'Pending', e.message)
+        }
 
     }, Error())
 
@@ -179,4 +160,17 @@ exports.processTransactions = async () => {
     setTimeout(exports.processTransactions, 1000)
 
 
+}
+
+// Updates transactions status and statusDetails fields
+async function setStatus(transaction, status, details) {
+    transaction.status = status
+    transaction.statusDetails = details
+    await transaction.save()
+}
+
+// Checks whether or not a transaction is more than 3 days old
+function isExpired(transaction) {
+    const expireDate = transaction.createdAt.setDate(transaction.createdAt.getDate() + 3)
+    return new Date > expireDate;
 }
