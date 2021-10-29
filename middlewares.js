@@ -174,3 +174,19 @@ function isExpired(transaction) {
     const expireDate = transaction.createdAt.setDate(transaction.createdAt.getDate() + 3)
     return new Date > expireDate;
 }
+
+// sendRequestToBank function
+async function sendRequestToBank(destinationBank, transactionAsJwt) {
+    sendPostRequest(destinationBank, transactionUrl)
+}
+
+exports.assertParametersExist = function(actualParameters, requiredParameters) {
+    requiredParameters.forEach(function (parameter) {
+        if (!actualParameters[parameter]) {
+            throw res.status(400).send({error: 'Missing parameter ' + parameter + ' in JWT'})
+        }
+        if (typeof actualParameters[parameter] !== 'string') {
+            return res.status(400).send({error: parameter + ' is of type ' + typeof actualParameters[parameter] + ' but expected it to be type string in JWT'})
+        }
+    })
+}
